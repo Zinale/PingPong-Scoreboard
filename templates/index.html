@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ping Pong Scoreboard</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f0f0f0;
+        }
+        h1 { font-size: 3em; }
+        .score {
+            font-size: 5em;
+            margin: 20px;
+        }
+        button {
+            font-size: 2em;
+            padding: 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .a { background: #ff4d4d; }
+        .b { background: #4da6ff; }
+        .reset { background: #888; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🏓 Ping Pong</h1>
+
+    <div class="score" id="score_a">0</div>
+    <button class="a" onclick="addPoint('a')">+1 Giocatore A</button>
+
+    <div class="score" id="score_b">0</div>
+    <button class="b" onclick="addPoint('b')">+1 Giocatore B</button>
+
+    <br><br>
+    <button class="reset" onclick="resetScore()">Reset</button>
+
+    <script>
+        const socket = io();
+
+        function addPoint(player) {
+            socket.emit("add_point", { player });
+        }
+
+        function resetScore() {
+            socket.emit("reset_score");
+        }
+
+        socket.on("update_score", (data) => {
+            document.getElementById("score_a").textContent = data.a;
+            document.getElementById("score_b").textContent = data.b;
+        });
+    </script>
+</body>
+</html>
