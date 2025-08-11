@@ -10,11 +10,14 @@ score = {"a": 0, "b": 0}
 def index():
     return render_template("index.html", score=score)
 
-@socketio.on("add_point")
-def handle_add_point(data):
+@socketio.on("update_point")
+def handle_update_point(data):
     player = data.get("player")
+    change = data.get("change", 0)  # +1 o -1
     if player in score:
-        score[player] += 1
+        score[player] += change
+        if score[player] < 0:
+            score[player] = 0
         socketio.emit("update_score", score)
 
 @socketio.on("reset_score")
@@ -24,4 +27,4 @@ def handle_reset_score():
     socketio.emit("update_score", score)
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=6000) 
+    socketio.run(app, host="0.0.0.0", port=5001,allow_unsafe_werkzeug=True)
