@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Scoreboard Live</title>
+  <style>
+    :root{
+      --bg:#0f1226;
+      --card:#171b34;
+      --accent:#6c7bff;
+      --accent-2:#35d0ff;
+      --text:#e9ecff;
+      --muted:#9aa2c7;
+      --good:#27d980;
+      --bad:#ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+      --radius: 24px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--text); background:
+        radial-gradient(1200px 600px at 10% -20%, rgba(108,123,255,0.18), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(53,208,255,0.15), transparent 55%),
+        var(--bg);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .wrap{
+      width:min(980px, 100%); display:grid; gap:16px;
+      grid-template-columns: 1fr 1fr;
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px 24px;
+      backdrop-filter: blur(8px);
+      position:relative; overflow:hidden;
+    }
+    .title{
+      font-size:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+      margin:0 0 10px;
+    }
+    .score{
+      font-size:72px; font-weight:800; line-height:1; letter-spacing:1px;
+      display:flex; align-items:flex-end; gap:14px;
+    }
+    .label{ font-size:16px; color:var(--muted); font-weight:500}
+    .glow{
+      position:absolute; inset:-1px;
+      background: radial-gradient(600px 180px at 50% -20%, rgba(108,123,255,0.15), transparent 60%);
+      pointer-events:none;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      background: rgba(108,123,255,0.14);
+      border:1px solid rgba(108,123,255,0.35);
+      color:#dfe2ff; padding:8px 12px; border-radius:999px; font-weight:600;
+    }
+    .grid-full{ grid-column: 1 / -1 }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:12px }
+    .stamp{ color:var(--muted); font-size:14px }
+    /* Animazioni */
+    .flip{
+      display:inline-block; transform-origin: 50% 70%;
+      animation: flip .5s ease; will-change: transform, filter;
+      text-shadow: 0 6px 22px rgba(53,208,255,0.35);
+      filter: drop-shadow(0 6px 14px rgba(108,123,255,.35));
+    }
+    @keyframes flip {
+      0% { transform: rotateX(70deg) scale(.9); opacity:.6 }
+      60%{ transform: rotateX(-10deg) scale(1.05); opacity:1 }
+      100%{ transform: rotateX(0deg) scale(1); }
+    }
+    .bar{
+      height:12px; border-radius:999px; background:#0d1022; overflow:hidden; border:1px solid rgba(255,255,255,0.08)
+    }
+    .bar>span{
+      display:block; height:100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      width:0%;
+      transition: width .6s cubic-bezier(.2,.8,.2,1);
+    }
+    @media (max-width: 768px){
+      .wrap{ grid-template-columns: 1fr }
+      .score{ font-size:56px }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="glow"></div>
+      <p class="title">Giocatore 1</p>
+      <div class="score"><span id="p1" class="flip">0</span><span class="label">punti</span></div>
+      <div class="bar" aria-hidden="true"><span id="bar1"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="glow"></div>
+      <p class="title">Giocatore 2</p>
+      <div class="score"><span id="p2" class="flip">0</span><span class="label">punti</span></div>
+      <div class="bar" aria-hidden="true"><span id="bar2"></span></div>
+    </div>
+
+    <div class="card grid-full">
+      <div class="row">
+        <span class="pill">🏆 Totale <strong id="total" style="margin-left:6px;">0</strong></span>
+        <span class="stamp">Ultimo aggiornamento: <span id="ts">—</span></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const elP1 = document.getElementById('p1');
+    const elP2 = document.getElementById('p2');
+    const elBar1 = document.getElementById('bar1');
+    const elBar2 = document.getElementById('bar2');
+    const elTotal = document.getElementById('total');
+    const elTs = document.getElementById('ts');
+
+    function animateNumber(el, value){
+      el.textContent = value;
+      el.classList.remove('flip');
+      // trigger reflow for restarting animation
+      void el.offsetWidth;
+      el.classList.add('flip');
+    }
+
+    function updateBars(p1, p2){
+      const total = Math.max(1, p1 + p2);
+      elBar1.style.width = ((p1/total)*100).toFixed(1) + '%';
+      elBar2.style.width = ((p2/total)*100).toFixed(1) + '%';
+    }
+
+    function applyState(s){
+      const p1 = parseInt(s.player1||0,10);
+      const p2 = parseInt(s.player2||0,10);
+      animateNumber(elP1, p1);
+      animateNumber(elP2, p2);
+      updateBars(p1,p2);
+      elTotal.textContent = (p1+p2).toString();
+      try{
+        const d = new Date(s.updated_at || Date.now());
+        elTs.textContent = d.toLocaleString();
+      }catch(_){ elTs.textContent = s.updated_at || '—' }
+    }
+
+    // 1) Prova a caricare lo stato iniziale (fallback)
+    fetch('/score').then(r=>r.json()).then(applyState).catch(()=>{});
+
+    // 2) Aggiornamenti live via SSE
+    const ev = new EventSource('/events');
+    ev.addEventListener('score', (e)=>{
+      try{
+        const data = JSON.parse(e.data);
+        applyState(data);
+      }catch(err){ console.error(err); }
+    });
+    ev.onerror = () => {
+      // In caso di errore, ricarica ogni tanto
+      console.warn('SSE disconnesso, riprovo…');
+    };
+  </script>
+</body>
+</html>

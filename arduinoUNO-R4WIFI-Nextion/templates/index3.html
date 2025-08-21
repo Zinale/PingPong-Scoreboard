@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Scoreboard Fullscreen</title>
+    <link rel="icon" href="{{ url_for('static', filename='icons/favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='scoreboard.css') }}">
+</head>
+<body>
+  <div class="board">
+    <section class="player player1">
+      <div class="score" id="p1">0</div>
+      <div class="label">Giocatore 1</div>
+    </section>
+
+    <section class="player player2">
+      <div class="score" id="p2">0</div>
+      <div class="label">Giocatore 2</div>
+    </section>
+  </div>
+
+  <div class="footer">
+    Totale: <span id="total">0</span> •
+    Ultimo aggiornamento: <span id="ts">—</span>
+  </div>
+
+  <script>
+    const elP1 = document.getElementById('p1');
+    const elP2 = document.getElementById('p2');
+    const elTotal = document.getElementById('total');
+    const elTs = document.getElementById('ts');
+
+    function animateNumber(el, value){
+      el.textContent = value;
+      el.classList.remove('flip');
+      void el.offsetWidth; // restart anim
+      el.classList.add('flip');
+    }
+
+    function applyState(s){
+      const p1 = parseInt(s.player1||0,10);
+      const p2 = parseInt(s.player2||0,10);
+      animateNumber(elP1, p1);
+      animateNumber(elP2, p2);
+      elTotal.textContent = (p1+p2).toString();
+      try{
+        const d = new Date(s.updated_at || Date.now());
+        elTs.textContent = d.toLocaleString();
+      }catch(_){ elTs.textContent = s.updated_at || '—' }
+    }
+
+    fetch('/score').then(r=>r.json()).then(applyState).catch(()=>{});
+    const ev = new EventSource('/events');
+    ev.addEventListener('score', (e)=>{
+      try{ applyState(JSON.parse(e.data)); }catch(err){ console.error(err); }
+    });
+  </script>
+</body>
+</html>
