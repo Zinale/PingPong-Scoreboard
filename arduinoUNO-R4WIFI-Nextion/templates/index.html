@@ -20,16 +20,9 @@
     </section>
   </div>
 
-  <div class="footer">
-    Totale: <span id="total">0</span> •
-    Ultimo aggiornamento: <span id="ts">—</span>
-  </div>
-
   <script>
     const elP1 = document.getElementById('p1');
     const elP2 = document.getElementById('p2');
-    const elTotal = document.getElementById('total');
-    const elTs = document.getElementById('ts');
 
     function animateNumber(el, value){
       el.textContent = value;
@@ -43,11 +36,6 @@
       const p2 = parseInt(s.player2||0,10);
       animateNumber(elP1, p1);
       animateNumber(elP2, p2);
-      elTotal.textContent = (p1+p2).toString();
-      try{
-        const d = new Date(s.updated_at || Date.now());
-        elTs.textContent = d.toLocaleString();
-      }catch(_){ elTs.textContent = s.updated_at || '—' }
     }
 
     fetch('/score').then(r=>r.json()).then(applyState).catch(()=>{});
