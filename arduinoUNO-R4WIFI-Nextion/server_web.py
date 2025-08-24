@@ -8,6 +8,9 @@ app = Flask(__name__)
 state = {
     "player1": 0,
     "player2": 0,
+    "set1":0,
+    "set2":0,
+    "nSet":3,
     "updated_at": datetime.utcnow().isoformat() + "Z"
 }
 
@@ -38,8 +41,14 @@ def score():
             data = request.get_json(force=True, silent=False)
             p1 = int(data.get("player1", state["player1"]))
             p2 = int(data.get("player2", state["player2"]))
+            s1 = int(data.get("set1", state["set1"]))
+            s2 = int(data.get("set2", state["set2"]))
+            nSet = int(data.get("nSet",state["nSet"]))
             state["player1"] = max(0, p1)
             state["player2"] = max(0, p2)
+            state["set1"] = max(0, s1)
+            state["set2"] = max(0, s2)
+            state["nSet"] = max(0,nSet)
             state["updated_at"] = datetime.utcnow().isoformat() + "Z"
             push_event(state.copy())
             return jsonify({"ok": True, "state": state}), 200

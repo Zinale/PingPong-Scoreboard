@@ -12,13 +12,24 @@
     <section class="player player1">
       <div class="score" id="p1">0</div>
       <div class="label">Giocatore 1</div>
+      <div class="sets" id="sets1">
+        <span class="set"></span>
+        <span class="set"></span>
+        <span class="set"></span>
+      </div>
     </section>
 
     <section class="player player2">
       <div class="score" id="p2">0</div>
       <div class="label">Giocatore 2</div>
+      <div class="sets" id="sets2">
+        <span class="set"></span>
+        <span class="set"></span>
+        <span class="set"></span>
+      </div>
     </section>
   </div>
+
 
   <script>
     const elP1 = document.getElementById('p1');
@@ -31,18 +42,69 @@
       el.classList.add('flip');
     }
 
+    function updateSets(id, n){
+      const el = document.getElementById(id);
+      if(!el) return;
+      [...el.children].forEach((dot, i)=>{
+        const wasWon = dot.classList.contains("won");
+        if(i < n){
+          dot.classList.add("won");
+          if(!wasWon){
+            dot.style.animation = "none";
+            void dot.offsetWidth;
+            dot.style.animation = "";
+          }
+        } else {
+          dot.classList.remove("won");
+        }
+      });
+    }
+
+    function renderSets(playerId, total) {
+      const container = document.getElementById(playerId);
+      container.innerHTML = ''; // svuota
+      for(let i=0; i<total; i++){
+        const dot = document.createElement('span');
+        dot.classList.add('set');
+        container.appendChild(dot);
+      }
+    }
+    
     function applyState(s){
       const p1 = parseInt(s.player1||0,10);
       const p2 = parseInt(s.player2||0,10);
       animateNumber(elP1, p1);
       animateNumber(elP2, p2);
+
+      renderSets('sets1', s.nSet);
+      renderSets('sets2', s.nSet);
+
+      updateSets("sets1", s.set1 || 0);
+      updateSets("sets2", s.set2 || 0);
     }
+
 
     fetch('/score').then(r=>r.json()).then(applyState).catch(()=>{});
     const ev = new EventSource('/events');
     ev.addEventListener('score', (e)=>{
       try{ applyState(JSON.parse(e.data)); }catch(err){ console.error(err); }
     });
+
+
+
+  </script>
+
+  <button id="goFS" style="display:none">Fullscreen</button>
+  <script>
+    function requestFullscreen(){
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    }
+    document.addEventListener("click", ()=>{
+      requestFullscreen();
+    }, {once:true});
   </script>
 </body>
 </html>

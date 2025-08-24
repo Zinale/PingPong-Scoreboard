@@ -1,13 +1,13 @@
 #include "Arduino_LED_Matrix.h"
 #include <WiFiS3.h>        
 #include <ArduinoHttpClient.h>  
-#include "pitches.h"
+#include "notes.h"
 
-// Credenziali WiFi
+// WiFi setup
+const char* ssid     = "SKYWIFI_K7TC9";
+const char* password = "bj9wJTbhaAg4";
 //const char* ssid     = "Gigante-Fondatore";
 //const char* password = "grisha-jaeger";
-
-
 
 // Server Flask 
 const char* serverHost = "192.168.0.242";
@@ -25,8 +25,7 @@ String serverPath = "/score";
 ArduinoLEDMatrix matrix;
 byte frame[8][12] = {0};
 
-const unsigned long debounceMs = 10;
-bool start = true;
+const unsigned long debounceMs = 40;
 
 struct Button {
   byte pin;
@@ -41,6 +40,17 @@ Button btn2_minus = {BTN2_MINUS, HIGH, 0};
 
 int score1 = 0;
 int score2 = 0;
+int set1 = 0;
+int set2 = 0;
+int nSet = 3;
+
+unsigned long int lastTryToSend = millis();
+short int last_score_of_5 = 0;
+bool set_is_finished = false;
+bool swapScores = false;
+Song songs[] = {pokemon,conan,dragonball};
+int nSongs = sizeof(songs) / sizeof(songs[0]);
+unsigned long lastBuzz = millis();
 
 //display IP on matrix
 unsigned long lastSwitch = 0;
@@ -51,77 +61,9 @@ String ipParts[4];
 WiFiClient wifi;
 HttpClient http(wifi, serverHost, serverPort);
 
-int melody_superMario[] = {
-  NOTE_E7, NOTE_E7, 0, NOTE_E7,
-  0, NOTE_C7, NOTE_E7, 0,
-  NOTE_G7, 0, 0,  0,
-  NOTE_G6, 0, 0, 0,
-
-  NOTE_C7, 0, 0, NOTE_G6,
-  0, 0, NOTE_E6, 0,
-  0, NOTE_A6, 0, NOTE_B6,
-  0, NOTE_AS6, NOTE_A6, 0,
-
-  NOTE_G6, NOTE_E7, NOTE_G7,
-  NOTE_A7, 0, NOTE_F7, NOTE_G7,
-  0, NOTE_E7, 0, NOTE_C7,
-  NOTE_D7, NOTE_B6, 0, 0,
-
-  // --- Parte B ---
-  NOTE_C7, 0, 0, NOTE_G6,
-  0, 0, NOTE_E6, 0,
-  0, NOTE_A6, 0, NOTE_B6,
-  0, NOTE_AS6, NOTE_A6, 0,
-
-  NOTE_G6, NOTE_E7, NOTE_G7,
-  NOTE_A7, 0, NOTE_F7, NOTE_G7,
-  0, NOTE_E7, 0, NOTE_C7,
-  NOTE_D7, NOTE_B6, 0, 0
-};
-
-int noteDurations_superMario[] = {
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-
-  12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-
-  // parte B
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-
-  12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12
-};
-
-void playSong(int buzz, int melody[],int noteDurations[]) {
-  Serial.println("Playing music!!!");
-  int notes = sizeof(melody) / sizeof(melody[0]);
-
-  for (int thisNote = 0; thisNote < notes; thisNote++) {
-    int duration = 1000 / noteDurations[thisNote];
-    int note = melody[thisNote];
-
-    if (note > 0) tone(buzz, note, duration);
-
-    delay(duration * 1.30);
-    noTone(buzz);
-  }
-}
-
+//Check if the server is on
+unsigned long lastServerCheck = millis();
+bool retryToSend = false;
 
 bool buttonPressed(Button &btn) {
   bool reading = digitalRead(btn.pin);
@@ -407,12 +349,39 @@ void updateDisplay() {
   }
 }
 
+bool checkIfServerIsOn(){
+    Serial.println("Pinging server");
+    WiFiClient testClient;
+    if (!testClient.connect(serverHost, serverPort)) {
+      Serial.println("Server non raggiungibile");
+      testClient.stop();
+      return false;
+    }
+    testClient.stop();
+    Serial.println("Server ONLINE!");
+    return true;
+}
+
 void sendScores() {
+  Serial.println("Sending data...");
   Serial.print("Wifi status: ");
   Serial.println(WiFi.status());
   if(WiFi.status()== WL_CONNECTED){
-    String msg = "{\"player1\":" + String(score1) + ",\"player2\":" + String(score2) + "}";
-    http.setTimeout(5000);       
+    if (!checkIfServerIsOn()) {
+      retryToSend = true;
+      lastTryToSend = millis();
+      return;
+    }
+    Serial.println("Writing msg...");
+    retryToSend = false;
+    String msg;
+    if (swapScores){    //avoid player's color change
+      msg = "{\"player1\":" + String(score2) + ",\"player2\":" + String(score1) + ",\"set1\":" + String(set1) + ",\"set2\":" + String(set2) + ",\"nSet\":" + String(nSet) + "}";
+    }else{
+      msg = "{\"player1\":" + String(score1) + ",\"player2\":" + String(score2) + ",\"set1\":" + String(set1) + ",\"set2\":" + String(set2) + ",\"nSet\":" + String(nSet) + "}";
+    }
+    Serial.println(msg);
+    http.setTimeout(200); 
     http.beginRequest();
     http.post(serverPath);
     http.sendHeader("Content-Type", "application/json");
@@ -420,24 +389,67 @@ void sendScores() {
     http.beginBody();
     http.print(msg);
     http.endRequest();
-  
+
     int statusCode = http.responseStatusCode();
     String response = http.responseBody();
 
     Serial.print("HTTP status: "); Serial.println(statusCode);
     Serial.print("Response: "); Serial.println(response);
-  }
+    }
+  return;
 }
+
+void updateScore(int &score, int delta, int buzzer, Song sound) {
+  score = max(0, score + delta);
+  sendScores();
+  playSong(buzzer, sound);
+  lastBuzz = millis();
+}
+
+void checkSetFinished() {
+  Serial.println("==============================\n\rChecking Set is finished...");
+  if (!set_is_finished) {
+    if (score1 >= 21 && score1 >= score2 + 2) {
+      declareWinner(1);
+    } else if (score2 >= 21 && score2 >= score1 + 2) {
+      declareWinner(2);
+    }
+  }
+  Serial.println("==============================");
+}
+
+void declareWinner(int player) {
+  Serial.print("Set finito! Ha vinto P");
+  Serial.println(player);
+  set_is_finished = true;
+  if (player == 1) set1++; else set2++;
+  sendScores();
+  playSong(player == 1 ? BUZZ1 : BUZZ2, songs[random(nSongs)]);
+  lastBuzz = millis();
+}
+
+void resetSet() {
+  if ((set1+set2)%2!=0) swapScores = true;
+  set_is_finished = false;
+  last_score_of_5 = 0;
+  score1 = 0;
+  score2 = 0;
+  sendScores();
+}
+
 
 void setup() {
   Serial.begin(9600);
   Serial1.begin(115200);
+  Serial.println("#############################\n\rSTARTING\n\r#############################");
 
   pinMode(BTN1_PLUS,  INPUT_PULLUP);
   pinMode(BTN1_MINUS, INPUT_PULLUP);
   pinMode(BTN2_PLUS,  INPUT_PULLUP);
   pinMode(BTN2_MINUS, INPUT_PULLUP);
   pinMode(LED, OUTPUT);
+  pinMode(BUZZ1, OUTPUT);
+  pinMode(BUZZ2, OUTPUT);
 
   // Connessione WiFi
   WiFi.begin(ssid, password);
@@ -451,27 +463,82 @@ void setup() {
   ipString = ip.toString();
   Serial.print("IP Arduino: "); Serial.println(ipString);
 
+  //check if the server is ON
+  //if the server is not on, retry on loop else press a button
+  while (!checkIfServerIsOn())
+  {
+    unsigned long mil = millis();
+    if (mil - lastBuzz > 5000) {playSong(BUZZ1,alertLong);lastBuzz = mil;}
+    if (buttonPressed(btn1_plus) or buttonPressed(btn1_minus) or buttonPressed(btn2_minus) or buttonPressed(btn2_plus)){
+      break;
+    }
+  }
+  sendScores();
   splitIP(ipString);
   matrix.begin();
-  playSong(BUZZ1,melody_superMario,noteDurations_superMario);
-  //sendScores();
+  playSong(BUZZ2,superMario);
 }
 
-// ===== LOOP =====
+
+// ========================================================================
+// ========================================================================
+// ========================= LOOP =========================
 void loop() {
-  if (start){
-    Serial.println("Arduino STARTED");
-    sendScores();
-    start=false;
+  bool b1p = buttonPressed(btn1_plus);
+  bool b1m = buttonPressed(btn1_minus);
+  bool b2p = buttonPressed(btn2_plus);
+  bool b2m = buttonPressed(btn2_minus);
+
+  checkSetFinished();
+  Serial.println("In game...");
+  //change nSet
+  if(b1p && b2p){
+    if (nSet==3){
+      nSet =5;
+    }else{
+      nSet=3;
+    }
   }
-  if (buttonPressed(btn1_plus)) {Serial.println("1!"); score1++; sendScores();tone(10,1000,1000);}
-  if (buttonPressed(btn1_minus) && score1 > 0) { score1--; sendScores();  tone(10,1000,1000); }
-  if (buttonPressed(btn2_plus)) {Serial.println("2!"); score2++;  sendScores(); tone(11,1000,1000); }
-  if (buttonPressed(btn2_minus) && score2 > 0) { score2--;sendScores(); tone(11,1000,1000); }
+
+  if (!set_is_finished){
+    if (b1p)  updateScore(score1, +1, BUZZ1, levelUp);
+    if (b1m) updateScore(score1, -1, BUZZ1, levelDown);
+    if (b2p)  updateScore(score2, +1, BUZZ2, levelUp);
+    if (b2m) updateScore(score2, -1, BUZZ2, levelDown);
+    Serial.println("Score:");Serial.println(score1);Serial.println(score2);
+  }else{
+    if (b1m || b1p || b2m || b2p){
+      resetSet();
+    }
+  }
 
   sendToNextion("score1.txt=\"" + String(score1) + "\"");
   sendToNextion("score2.txt=\"" + String(score2) + "\"");
   
   updateDisplay();
-  delay(10);
+
+  if ((score1+score2)%5==0 && (score1+score2)!= last_score_of_5){
+    Serial.println("Checking change serve");
+    unsigned long mil = millis();
+    if (mil - lastBuzz > 3000){
+      Serial.println("-----Alert change serve--------");
+      lastBuzz = mil;
+      playSong(BUZZ1,alertShort);
+      last_score_of_5 = score1+score2;
+    }
+  }
+
+  if (retryToSend && millis()-lastTryToSend > 30000 ) {sendScores();lastTryToSend = millis();}
+
+  if (millis() - lastServerCheck > 60000)   //60s
+  { 
+    Serial.println("Checking Server...");
+    if (!checkIfServerIsOn()){
+      playSong(BUZZ1,alertLong);
+    }
+    lastServerCheck = millis();
+  }
+  
+  delay(5);
+  
 }
