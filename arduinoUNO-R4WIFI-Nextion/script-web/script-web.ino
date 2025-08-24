@@ -4,8 +4,6 @@
 #include "notes.h"
 
 // WiFi setup
-const char* ssid     = "SKYWIFI_K7TC9";
-const char* password = "bj9wJTbhaAg4";
 //const char* ssid     = "Gigante-Fondatore";
 //const char* password = "grisha-jaeger";
 
@@ -422,7 +420,9 @@ void declareWinner(int player) {
   Serial.print("Set finito! Ha vinto P");
   Serial.println(player);
   set_is_finished = true;
-  if (player == 1) set1++; else set2++;
+  if (!swapScores){
+    if (player == 1) set1++; else set2++;
+  } else{if (player == 1) set2++; else set1++;}
   sendScores();
   playSong(player == 1 ? BUZZ1 : BUZZ2, songs[random(nSongs)]);
   lastBuzz = millis();
