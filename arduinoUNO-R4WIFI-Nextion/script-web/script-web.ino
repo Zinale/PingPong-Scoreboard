@@ -18,8 +18,6 @@ String serverPath = "/score";
 #define BTN2_PLUS  4
 #define BTN2_MINUS 5
 #define LED        LED_BUILTIN
-#define BUZZ1 10
-#define BUZZ2 11
 
 #define POINT_AT_SET 21
 
@@ -401,10 +399,10 @@ void sendScores() {
   return;
 }
 
-void updateScore(int &score, int delta, int buzzer, Song sound) {
+void updateScore(int &score, int delta, Song sound) {
   score = max(0, score + delta);
   sendScores();
-  playSong(buzzer, sound);
+  playSong(sound);
   lastBuzz = millis();
 }
 
@@ -420,7 +418,7 @@ void checkSetFinished() {
   int midSet = (POINT_AT_SET + 1) / 2;
   if(set1+set2==(nSet-1) && score1+score2==midSet && !changeFieldShown){
     delay(100);
-    playSong(BUZZ1,fieldAlert);
+    playSong(fieldAlert);
     changeFieldShown=true;
     int a = score1;
     score1=score2;
@@ -438,7 +436,7 @@ void declareWinner(int player) {
     if (player == 1) set1++; else set2++;
   } else{if (player == 1) set2++; else set1++;}
   sendScores();
-  playSong(player == 1 ? BUZZ1 : BUZZ2, songs[random(nSongs)]);
+  playSong(songs[random(nSongs)]);
   lastBuzz = millis();
 }
 
@@ -468,8 +466,7 @@ void setup() {
   pinMode(BTN2_PLUS,  INPUT_PULLUP);
   pinMode(BTN2_MINUS, INPUT_PULLUP);
   pinMode(LED, OUTPUT);
-  pinMode(BUZZ1, OUTPUT);
-  pinMode(BUZZ2, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
 
   // Connessione WiFi
   WiFi.begin(ssid, password);
@@ -477,7 +474,7 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500); Serial.print(".");
   }
-  tone(11,1000,1000);
+  tone(BUZZER,1000,1000);
   Serial.println("\nConnesso al WiFi!");
   IPAddress ip = WiFi.localIP();
   ipString = ip.toString();
@@ -488,7 +485,7 @@ void setup() {
   while (!checkIfServerIsOn())
   {
     unsigned long mil = millis();
-    if (mil - lastBuzz > 5000) {playSong(BUZZ1,alertLong);lastBuzz = mil;}
+    if (mil - lastBuzz > 5000) {playSong(alertLong);lastBuzz = mil;}
     if (buttonPressed(btn1_plus) or buttonPressed(btn1_minus) or buttonPressed(btn2_minus) or buttonPressed(btn2_plus)){
       break;
     }
@@ -496,7 +493,7 @@ void setup() {
   sendScores();
   splitIP(ipString);
   matrix.begin();
-  playSong(BUZZ2,superMario);
+  playSong(superMario);
   Serial.println("\nConnesso al WiFi!");
   ip = WiFi.localIP();
   ipString = ip.toString();
@@ -526,10 +523,10 @@ void loop() {
   }
 
   if (!set_is_finished){
-    if (b1p)  updateScore(score1, +1, BUZZ1, levelUp);
-    if (b1m) updateScore(score1, -1, BUZZ1, levelDown);
-    if (b2p)  updateScore(score2, +1, BUZZ2, levelUp);
-    if (b2m) updateScore(score2, -1, BUZZ2, levelDown);
+    if (b1p)  updateScore(score1, +1, levelUp);
+    if (b1m) updateScore(score1, -1, levelDown);
+    if (b2p)  updateScore(score2, +1, levelUp);
+    if (b2m) updateScore(score2, -1, levelDown);
     Serial.println("Score:");Serial.println(score1);Serial.println(score2);
   }else{
     if (b1m || b1p || b2m || b2p){
@@ -548,7 +545,7 @@ void loop() {
     if (mil - lastBuzz > 3000){
       Serial.println("-----Alert cambio servizio--------");
       lastBuzz = mil;
-      playSong(BUZZ1,alertShort);
+      playSong(alertShort);
       last_score_of_5 = score1+score2;
     }
   }
@@ -559,7 +556,7 @@ void loop() {
   { 
     Serial.println("Verifica se server ON...");
     if (!checkIfServerIsOn()){
-      playSong(BUZZ1,alertLong);
+      playSong(alertLong);
     }
     lastServerCheck = millis();
   }

@@ -178,16 +178,16 @@ Song pokemon = {pokemon_melody, pokemon_noteDurations,sizeof(pokemon_melody) / s
 Song dragonball = {dragonball_melody, dragonball_noteDurations,sizeof(dragonball_melody) / sizeof(dragonball_melody[0])};
 Song fieldAlert = {melodyFieldAlert,noteDurationsFieldAlert,sizeof(melodyFieldAlert) / sizeof(melodyFieldAlert[0])};
 
-void playSong(int buzz, Song song) {
+void playSong(Song song) {
   Serial.println("Playing music!!!");
 
   for (int thisNote = 0; thisNote < song.notes; thisNote++) {
     int duration = 1000 / song.noteDurations[thisNote];
     int note = song.melody[thisNote];
 
-    if (note > 0) tone(buzz, note, duration);
+    if (note > 0) tone(BUZZER, note, duration);
 
     delay(duration * 1.30);
-    noTone(buzz);
+    noTone(BUZZER);
   }
 }

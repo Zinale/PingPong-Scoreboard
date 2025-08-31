@@ -1,6 +1,7 @@
 #ifndef NOTES_H
 #define NOTES_H
 
+#define BUZZER 11
 
 struct Song {
   const int* melody;
@@ -19,6 +20,6 @@ extern Song pokemon ;
 extern Song dragonball;
 extern Song fieldAlert;
 
-void playSong(int buzz, Song song);
+void playSong(Song song);
 
 #endif
