@@ -53,8 +53,8 @@ A **DIY digital scoreboard system** for PingPong games, combining **hardware ⚙
    - Vai in `arduinoUNO-R4WIFI-Nextion/` e avvia il server Flask:  
 
      ```bash
-     git clone https://github.com/your-username/CityBeach-Ancona.git
-     cd CityBeach-Ancona/CityBeach
+     git clone [https://github.com/your-username/CityBeach-Ancona.git](https://github.com/Zinale/PingPong-Scoreboard.git)
+     cd PingPong-Scoreboard/arduinoUNO-R4WIFI-Nextion
 
      python -m venv venv
      source venv/bin/activate  # Windows: venv\Scripts\activate
