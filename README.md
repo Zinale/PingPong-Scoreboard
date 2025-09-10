@@ -72,7 +72,7 @@ A **DIY digital scoreboard system** for PingPong games, combining **hardware ⚙
 
 4. 🏓 **Gioca!**  
    - Usa i pulsanti per incrementare/decrementare i punti.  
-   - Punteggio sincronizzato su **display**, **matrice LED** e **interfaccia web**.  
+   - Punteggio sincronizzato su **display** e **interfaccia web**.  
 
 ---
 
@@ -118,8 +118,8 @@ A **DIY digital scoreboard system** for PingPong games, combining **hardware ⚙
    - Navigate to `arduinoUNO-R4WIFI-Nextion/` and run the Flask server:  
 
      ```bash
-     git clone https://github.com/your-username/CityBeach-Ancona.git
-     cd CityBeach-Ancona/CityBeach
+     git clone [https://github.com/your-username/CityBeach-Ancona.git](https://github.com/Zinale/PingPong-Scoreboard.git)
+     cd PingPong-Scoreboard/arduinoUNO-R4WIFI-Nextion
 
      python -m venv venv
      source venv/bin/activate  # Windows: venv\Scripts\activate
@@ -137,7 +137,7 @@ A **DIY digital scoreboard system** for PingPong games, combining **hardware ⚙
 
 4. 🏓 **Play!**  
    - Use the Arduino buttons to update scores.  
-   - Scores sync across **Nextion display**, **LED matrix**, and **web app**.  
+   - Scores sync across **Nextion display** and **web app**.  
 
 ---
 
