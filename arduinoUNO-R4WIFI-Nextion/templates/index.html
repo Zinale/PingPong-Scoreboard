@@ -6,7 +6,21 @@
   <title>Scoreboard Fullscreen</title>
     <link rel="icon" href="{{ url_for('static', filename='icons/favicon.png') }}">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='scoreboard.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700;900&family=Montserrat:wght@700;900&family=Anton&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cossette+Titre:wght@700&family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='scoreboard.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700;900&family=Montserrat:wght@700;900&family=Anton&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+    .matchpoint-text {
+      font-family: 'Oswald', sans-serif;
+    }
+  </style>
 </head>
 <body>
   <div id="servePopup" class="popup popup-serve">SERVE</div>
@@ -70,15 +84,93 @@
         container.appendChild(dot);
       }
     }
-    
-    let lastTotal = -1; 
 
-    function showPopup(id){
-      const popup = document.getElementById(id);
-      popup.classList.add("show");
-      setTimeout(()=> popup.classList.remove("show"), 2500);
+    let lastTotal = -1; 
+    let fieldPopupShown = false;
+
+    // -------------------------
+    // Gestione coda popup
+    // -------------------------
+    let popupQueue = [];
+    let popupActive = false;
+
+    function enqueuePopup(fn, priority = 0) {
+      popupQueue.push({ fn, priority });
+      popupQueue.sort((a, b) => b.priority - a.priority); 
+      processQueue();
     }
 
+    function processQueue() {
+      if (popupActive || popupQueue.length === 0) return;
+
+      popupActive = true;
+      const { fn } = popupQueue.shift();
+      fn(() => {
+        popupActive = false;
+        processQueue();
+      });
+    }
+
+    // -------------------------
+    // Popup wrappers
+    // -------------------------
+    function showServePopup(done) {
+      const popup = document.getElementById("servePopup");
+      popup.classList.add("show");
+      setTimeout(() => {
+        popup.classList.remove("show");
+        done();
+      }, 1700);
+    }
+
+    function showFieldPopup(done) {
+      const popup = document.getElementById("fieldPopup");
+      popup.classList.add("show");
+      setTimeout(() => {
+        popup.classList.remove("show");
+        done();
+      }, 1700);
+    }
+
+    function showSetPointPopup(player, done) {
+      const overlay = document.createElement("div");
+      overlay.className = "setpoint-overlay " + (player === 1 ? "setpoint-red" : "setpoint-blue");
+
+      const text = document.createElement("div");
+      text.className = "overlay-text";
+      text.textContent = "SET POINT";
+
+      document.body.appendChild(overlay);
+      document.body.appendChild(text);
+
+      setTimeout(() => {
+        overlay.remove();
+        text.remove();
+        done();
+      }, 5000);
+    }
+
+    function showMatchPointPopup(player, done) {
+        const overlay = document.createElement("div");
+        overlay.className = "matchpoint-overlay-new"; 
+
+        const text = document.createElement("div");
+        text.className = "matchpoint-text-new"; 
+        text.textContent = "MATCH POINT";
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(text);
+
+        setTimeout(() => {
+            overlay.remove();
+            text.remove();
+            done();
+        }, 5000); 
+    }
+
+    // -------------------------
+    // Apply State
+    // -------------------------
     function applyState(s){
       const p1 = parseInt(s.player1||0,10);
       const p2 = parseInt(s.player2||0,10);
@@ -93,13 +185,33 @@
 
       const total = p1 + p2;
       if (total !== lastTotal && total > 0 && total % 5 === 0){
-        showPopup("servePopup");
+        enqueuePopup(showServePopup, 2);
       }
-      if (total == 11 && total != lastTotal && s.set1 + s.set2 == s.nSet-1){
-        showPopup("fieldPopup");
+      if ((p1 == 11 || p2==11)&& !fieldPopupShown && s.set1 + s.set2 == s.nSet-1){
+        enqueuePopup(showFieldPopup, 1);
+        fieldPopupShown = true;
       }
+
+      const neededSets = Math.floor(s.nSet / 2) + 1;
+
+      // --- MATCH POINT ---
+      if (p1 >= 20 && p1 > p2 && s.set1 === neededSets - 1) {
+        enqueuePopup(done => showMatchPointPopup(1, done), 1);
+      } else if (p2 >= 20 && p2 > p1 && s.set2 === neededSets - 1) {
+        enqueuePopup(done => showMatchPointPopup(2, done), 1);
+      }
+      else{
+        // --- SET POINT ---
+        if (p1 >= 20 && p1 > p2 && s.set1 < neededSets-1) {
+          enqueuePopup(done => showSetPointPopup(1, done), 1);
+        } else if (p2 >= 20 && p2 > p1 && s.set2 < neededSets) {
+          enqueuePopup(done => showSetPointPopup(2, done), 1);
+        }
+      }
+
       lastTotal = total;
     }
+
 
 
     fetch('/score').then(r=>r.json()).then(applyState).catch(()=>{});

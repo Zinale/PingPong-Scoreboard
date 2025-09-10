@@ -4,7 +4,6 @@
 #include "notes.h"
 
 // WiFi setup
-
 //const char* ssid     = "Gigante-Fondatore";
 //const char* password = "grisha-jaeger";
 
@@ -416,7 +415,7 @@ void checkSetFinished() {
     }
   }
   int midSet = (POINT_AT_SET + 1) / 2;
-  if(set1+set2==(nSet-1) && score1+score2==midSet && !changeFieldShown){
+  if(set1+set2==(nSet-1) && (score1==midSet or score2==midSet) && !changeFieldShown){
     delay(100);
     playSong(fieldAlert);
     changeFieldShown=true;
