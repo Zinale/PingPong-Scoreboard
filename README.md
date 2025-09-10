@@ -6,8 +6,8 @@ A **DIY digital scoreboard system** for PingPong games, combining **hardware ⚙
 ---
 
 ## 🌍 Languages
-- 🇮🇹 [Italiano](#-descrizione-in-italiano)
-- 🇬🇧 [English](#-english-description)
+- 🇮🇹 [![it](https://img.shields.io/badge/lang-Italiano-green)](#-descrizione-in-italiano)
+- 🇬🇧 [![en](https://img.shields.io/badge/lang-English-blue)](#-english-description)
 
 ---
 
