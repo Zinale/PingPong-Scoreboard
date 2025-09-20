@@ -2,6 +2,7 @@
 #include <WiFiS3.h>        
 #include <ArduinoHttpClient.h>  
 #include "notes.h"
+#include "secrets.h"
 
 // WiFi setup
 //const char* ssid     = "Gigante-Fondatore";
